@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Login" %}{% endblock %}
+
+{% block content %}
+	<h1>Login</h1>
+    <br />
+    <form class="form-horizontal" action="." method='post'>
+        {% csrf_token %}
+        <fieldset>
+            {% for field in form %}
+            <div class="control-group {% if field.errors %}error{% endif %}">
+                <label class="control-label">{{ field.label }}</label>
+                <div class="controls">
+                    {{ field }}
+                    {% if field.errors %}
+                        <span class='help-inline'>{{ field.errors.0 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Login</button>
+                <a class="btn" href='#'>Forgot your password?</a>
+            </div>
+        </fieldset>
+    </form>
+{% endblock %}
