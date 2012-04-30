@@ -139,6 +139,7 @@ INSTALLED_APPS = (
     'south',
     'compressor',
     'poi',
+    'icanhaz',
     # Internal apps
 )
 

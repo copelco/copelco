@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">Places</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+    <div class="container">
+        <div id="groupApp"></div>
+        <div id="app"></div>
+    </div> <!-- /container -->
+{% endblock %}
+
+{% block extra-js %}
+    <script src="{{ STATIC_URL }}js/libs/underscore.js"></script>
+    <script src="{{ STATIC_URL }}js/libs/backbone.js"></script>
+    <script src="{{ STATIC_URL }}js/libs/backbone-tastypie.js"></script>
+    <script src="{{ STATIC_URL }}js/libs/ICanHaz.js"></script>
+    <script>
+        PLACES_API = "{% url api_dispatch_list api_name="v1" resource_name="place" %}";
+        GROUPS_API = "{% url api_dispatch_list api_name="v1" resource_name="placegroup" %}";
+    </script>
+    <script src="{{ STATIC_URL }}js/places-app.js"></script>
+    {% load icanhaz %}
+    {% icanhaz "listApp" %}
+    {% icanhaz "placeTemplate" %}
+{% endblock %}
