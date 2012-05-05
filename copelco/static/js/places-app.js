@@ -1,64 +1,139 @@
 (function(){
-    window.Place = Backbone.Model.extend({
+    window.TastypieModel = Backbone.Model.extend({
+        base_url: function() {
+          var temp_url = Backbone.Model.prototype.url.call(this);
+          return (temp_url.charAt(temp_url.length - 1) == '/' ? temp_url : temp_url+'/');
+        },
+
+        url: function() {
+          return this.base_url();
+        }
+    });
+
+    window.TastypieCollection = Backbone.Collection.extend({
+        parse: function(response) {
+            this.recent_meta = response.meta || {};
+            return response.objects || response;
+        }
+    });
+
+    window.Place = window.TastypieModel.extend({
         urlRoot: PLACES_API
     });
 
-    window.Places = Backbone.Collection.extend({
-        urlRoot: PLACES_API,
+    window.Places = window.TastypieCollection.extend({
+        url: PLACES_API,
         model: Place
     });
 
-    window.Group = Backbone.Model.extend({
+    window.Group = window.TastypieModel.extend({
         urlRoot: GROUPS_API
     });
 
-    window.Groups = Backbone.Collection.extend({
-        urlRoot: GROUPS_API,
+    window.Groups = window.TastypieCollection.extend({
+        url: GROUPS_API,
         model: Group
-    });
-
-    window.PlaceView = Backbone.View.extend({
-        tagName: 'li',
-        className: 'place',
-
-        events: {
-            'click .permalink': 'navigate'           
-        },
-
-        initialize: function(){
-            this.model.bind('change', this.render, this);
-        },
-
-        navigate: function(e){
-            this.trigger('navigate', this.model);
-            e.preventDefault();
-        },
-
-        render: function(){
-            $(this.el).html(ich.placeTemplate(this.model.toJSON()));
-            return this;
-        }                                        
     });
 
     window.GroupView = Backbone.View.extend({
         tagName: 'li',
         className: 'group',
 
+        events: {
+            'click a': 'getPlaces'
+        },
+
         initialize: function(){
+            _.bindAll(this, 'getPlaces');
             this.model.bind('change', this.render, this);
+        },
+
+        getPlaces: function(e) {
+            e.preventDefault();
+            window.router.navigate("group/" + this.model.attributes.id, {trigger: true});
         },
 
         render: function(){
             $(this.el).html(ich.groupView(this.model.toJSON()));
             return this;
-        }   
+        }
     });
 
     window.GroupList = Backbone.View.extend({
-        render: function(){
-            $(this.el).html(ich.groupList(this.model.toJSON()));
+        initialize: function() {
+            _.bindAll(this, 'addOne', 'render');
+            this.collection.bind('add', this.addOne);
+        },
+
+        addOne: function(group) {
+            var view = new GroupView({model: group});
+            $(this.el).prepend(view.render().el);
+        },
+
+        render: function() {
+            this.collection.each(this.addOne);
             return this;
-        }    
+        }
+    });
+
+    window.PlaceListItemView = Backbone.View.extend({
+        tagName: 'li',
+        className: 'place',
+
+        initialize: function(){
+            this.model.bind('change', this.render, this);
+        },
+
+        render: function(){
+            $(this.el).html(ich.placeListItem(this.model.toJSON()));
+            return this;
+        }                                        
+    });
+
+    window.PlaceListView = Backbone.View.extend({
+        initialize: function(){
+            _.bindAll(this, 'addOne');
+            this.collection.bind('add', this.addOne);
+        },
+
+        addOne: function(place){
+            var view = new PlaceListItemView({model: place});
+            $(this.el).prepend(view.render().el);
+        },
+
+        render: function() {
+            $(this.el).html(ich.placeListApp({}));
+            this.collection.each(this.addOne);
+            return this;
+        }
+    });
+
+    window.PlaceListApp = Backbone.View.extend({
+        initialize: function() {
+            _.bindAll(this, 'update', 'query');
+            this.options.group.bind('change', this.update);
+        },
+
+        query: function(query) {
+            return {'groups__in': this.options.group.id};
+        },
+
+        update: function() {
+            this.collection.fetch({
+                data: this.query(),
+                success: _.bind(this.render, this)
+            });
+        },
+
+        render: function() {
+            $(this.el).html(ich.placeListApp({group: this.options.group.attributes.name}));
+            var placeListView = new PlaceListView({
+                collection: this.collection,
+                el: this.$('#places')
+            });
+            this.collection.each(placeListView.addOne);
+            return this;
+        }
     });
 
     window.DetailApp = Backbone.View.extend({
@@ -74,102 +149,53 @@
         render: function(){
             $(this.el).html(ich.detailApp(this.model.toJSON()));
             return this;
-        }                                        
-    });
-
-    window.ListView = Backbone.View.extend({
-        initialize: function(){
-            _.bindAll(this, 'addOne', 'addAll');
-
-            this.collection.bind('add', this.addOne);
-            this.collection.bind('reset', this.addAll, this);
-            this.views = [];
-        },
-
-        addAll: function(){
-            this.views = [];
-            this.collection.each(this.addOne);
-        },
-
-        addOne: function(place){
-            var view = new PlaceView({
-                model: place
-            });
-            $(this.el).prepend(view.render().el);
-            this.views.push(view);
-            view.bind('all', this.rethrow, this);
-        },
-
-        rethrow: function(){
-            this.trigger.apply(this, arguments);
         }
-
     });
 
-    window.ListApp = Backbone.View.extend({
-        el: "#app",
-
-        rethrow: function(){
-            this.trigger.apply(this, arguments);
-        },
-
-        render: function(){
-            $(this.el).html(ich.listApp({}));
-            var list = new ListView({
-                collection: this.collection,
-                el: this.$('#places')
-            });
-            list.addAll();
-            // list.bind('all', this.rethrow, this);
-            // new InputView({
-            //     collection: this.collection,
-            //     el: this.$('#input')
-            // });
-        }        
-    });
-
-
-
-
-    
-    window.Router = Backbone.Router.extend({
+    window.AppRouter = Backbone.Router.extend({
         routes: {
-            '': 'list',
-            ':id/': 'detail'
+            '': 'groupList',
+            'group/:id': 'placeList',
         },
 
-        navigate_to: function(model){
-            var path = (model && model.get('id') + '/') || '';
-            this.navigate(path, true);
+        groupList: function() {
+            this.groups = new Groups();
+            this.groupList = new GroupList({
+                el: $('#groupList'),
+                collection: this.groups
+            });
+            this.groups.fetch({success: _.bind(this.groupList.render, this.groupList)});
         },
 
-        detail: function(){},
+        placeList: function(id) {
+            window.app.group.set('id', id, {silent: true});
+            window.app.group.fetch();
 
-        list: function(){}
+            // function render() {
+            //     this.placeListApp.options.group = this.group;
+
+            //     setQuery({'groups__in': this.group.id});
+            // }
+            // {success: _.bind(render, this)})
+        }
     });
 
     $(function(){
         window.app = window.app || {};
-        app.groups = new Groups();
-        app.groupList = new GroupList({
-            el: $('#groupApp'),
-            collection: app.groups
+        window.app.group = new Group();
+        window.app.places = new Places();
+        window.app.placeListApp = new PlaceListApp({
+            el: $("#placeList"),
+            collection: window.app.places,
+            group: window.app.group
         });
-        app.groups.fetch({
-            success: _.bind(app.groupList.render, app.groupList)                
-        });
+        window.router = new AppRouter();
+        Backbone.history.start();
+        
 
-        app.places = new Places();
-        app.list = new ListApp({
-            el: $("#app"),
-            collection: app.places
-        });
-        app.detail = new DetailApp({
-            el: $("#app")
-        });
-        app.places.fetch({
-            success: _.bind(app.list.render, app.list)                
-        });
+
+
+
 
         // app.router = new Router();
         // app.router.bind('route:list', function(){

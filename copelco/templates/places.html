@@ -9,7 +9,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">Places</a>
+          <a class="brand" href="/places/">Places</a>
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="#">Home</a></li>
@@ -21,15 +21,14 @@
       </div>
     </div>
     <div class="container">
-        <div id="groupApp"></div>
-        <div id="app"></div>
+        <ul id="groupList" class="nav nav-pills"></ul>
+        <div id="placeList"></div>
     </div> <!-- /container -->
 {% endblock %}
 
 {% block extra-js %}
     <script src="{{ STATIC_URL }}js/libs/underscore.js"></script>
     <script src="{{ STATIC_URL }}js/libs/backbone.js"></script>
-    <script src="{{ STATIC_URL }}js/libs/backbone-tastypie.js"></script>
     <script src="{{ STATIC_URL }}js/libs/ICanHaz.js"></script>
     <script>
         PLACES_API = "{% url api_dispatch_list api_name="v1" resource_name="place" %}";
@@ -37,6 +36,8 @@
     </script>
     <script src="{{ STATIC_URL }}js/places-app.js"></script>
     {% load icanhaz %}
-    {% icanhaz "listApp" %}
-    {% icanhaz "placeTemplate" %}
+    {% icanhaz "groupView" %}
+    {% icanhaz "groupList" %}
+    {% icanhaz "placeListApp" %}
+    {% icanhaz "placeListItem" %}
 {% endblock %}
