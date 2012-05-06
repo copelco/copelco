@@ -17,6 +17,15 @@
         }
     });
 
+    window.Type = window.TastypieModel.extend({
+        urlRoot: TYPES_API
+    });
+
+    window.Types = window.TastypieCollection.extend({
+        url: TYPES_API,
+        model: Type
+    });
+
     window.Place = window.TastypieModel.extend({
         urlRoot: PLACES_API
     });
@@ -33,6 +42,48 @@
     window.Groups = window.TastypieCollection.extend({
         url: GROUPS_API,
         model: Group
+    });
+
+    window.TypeListItemView = Backbone.View.extend({
+        tagName: 'li',
+
+        events: {
+            'click a': 'getPlaces'
+        },
+
+        initialize: function(){
+            _.bindAll(this, 'getPlaces');
+            this.model.bind('change', this.render, this);
+        },
+
+        getPlaces: function(e) {
+            e.preventDefault();
+            window.router.navigate("group/" + this.model.attributes.id, {trigger: true});
+        },
+
+        render: function(){
+            var anchor = $('<a href="#">').addClass('type').text(this.model.attributes.name);
+            $(this.el).html(anchor);
+            return this;
+        }
+    });
+
+    window.TypeListView = Backbone.View.extend({
+        initialize: function() {
+            _.bindAll(this, 'addOne', 'render');
+            this.collection.bind('add', this.addOne);
+            this.render();
+        },
+
+        addOne: function(group) {
+            var view = new TypeListItemView({model: group});
+            $(this.el).prepend(view.render().el);
+        },
+
+        render: function() {
+            this.collection.each(this.addOne);
+            return this;
+        }
     });
 
     window.GroupView = Backbone.View.extend({
@@ -168,20 +219,20 @@
         },
 
         placeList: function(id) {
+            // update group id and call fetch to trigger change
             window.app.group.set('id', id, {silent: true});
             window.app.group.fetch();
-
-            // function render() {
-            //     this.placeListApp.options.group = this.group;
-
-            //     setQuery({'groups__in': this.group.id});
-            // }
-            // {success: _.bind(render, this)})
         }
     });
 
     $(function(){
         window.app = window.app || {};
+        window.app.types = new Types();
+        window.app.types.reset(INITIAL_TYPES);
+        window.app.typeListView = new TypeListView({
+            el: $('#types'),
+            collection: window.app.types,
+        });
         window.app.group = new Group();
         window.app.places = new Places();
         window.app.placeListApp = new PlaceListApp({
