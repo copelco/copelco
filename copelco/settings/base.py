@@ -135,11 +135,13 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.humanize',
     'django.contrib.sitemaps',
+    'django.contrib.gis',
     # External apps
     'south',
     'compressor',
     'poi',
     'icanhaz',
+    'sorl.thumbnail',
     # Internal apps
 )
 

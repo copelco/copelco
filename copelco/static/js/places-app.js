@@ -58,11 +58,11 @@
 
         getPlaces: function(e) {
             e.preventDefault();
-            window.router.navigate("group/" + this.model.attributes.id, {trigger: true});
+            window.router.navigate("type/" + this.model.get('id'), {trigger: true});
         },
 
         render: function(){
-            var anchor = $('<a href="#">').addClass('type').text(this.model.attributes.name);
+            var anchor = $('<a href="#">').addClass('type').text(this.model.get('name'));
             $(this.el).html(anchor);
             return this;
         }
@@ -162,11 +162,15 @@
     window.PlaceListApp = Backbone.View.extend({
         initialize: function() {
             _.bindAll(this, 'update', 'query');
-            this.options.group.bind('change', this.update);
+            this.options.active_type.bind('change', this.update);
         },
 
         query: function(query) {
-            return {'groups__in': this.options.group.id};
+            var data = {};
+            if (this.options.active_type.has('id') ) {
+                data['type'] = this.options.active_type.get('id');
+            }
+            return data;
         },
 
         update: function() {
@@ -177,7 +181,7 @@
         },
 
         render: function() {
-            $(this.el).html(ich.placeListApp({group: this.options.group.attributes.name}));
+            $(this.el).html(ich.placeListApp({type: this.options.active_type.attributes.name}));
             var placeListView = new PlaceListView({
                 collection: this.collection,
                 el: this.$('#places')
@@ -205,23 +209,19 @@
 
     window.AppRouter = Backbone.Router.extend({
         routes: {
-            '': 'groupList',
-            'group/:id': 'placeList',
+            '': 'placeList',
+            'type/:id': 'placeListByType',
         },
 
-        groupList: function() {
-            this.groups = new Groups();
-            this.groupList = new GroupList({
-                el: $('#groupList'),
-                collection: this.groups
-            });
-            this.groups.fetch({success: _.bind(this.groupList.render, this.groupList)});
+        placeList: function() {
+            window.app.active_type.clear();
+            window.app.placeListApp.update();
         },
 
-        placeList: function(id) {
-            // update group id and call fetch to trigger change
-            window.app.group.set('id', id, {silent: true});
-            window.app.group.fetch();
+        placeListByType: function(id) {
+            // update active_type id and call fetch to trigger change
+            window.app.active_type.set('id', id, {silent: true});
+            window.app.active_type.fetch();
         }
     });
 
@@ -233,12 +233,13 @@
             el: $('#types'),
             collection: window.app.types,
         });
-        window.app.group = new Group();
+        window.app.active_type = new Type();
+        // window.app.group = new Group();
         window.app.places = new Places();
         window.app.placeListApp = new PlaceListApp({
             el: $("#placeList"),
             collection: window.app.places,
-            group: window.app.group
+            active_type: window.app.active_type
         });
         window.router = new AppRouter();
         Backbone.history.start();
